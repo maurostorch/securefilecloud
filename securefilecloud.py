@@ -18,15 +18,13 @@ def connect(app_key, app_secret,code):
 	print 'account: ', client.account_info()
 	return client
 
-def upload(client, filepath):
+def upload(client, filepath, e, n):
 	print 'upload file '+filepath
-	(e,d,n,filetmp) = encrypt(filepath)
+	(e,n,filetmp) = encrypt(filepath, e, n)
 	f = open(filetmp)
 	client.put_file("/"+filepath,f)
-	print (e,d,n)
 
-def encrypt(filepath):
-	(e,d,n) = rsa.keys(1024)
+def encrypt(filepath, e, n):
 	f = open(filepath,'r')
 	data = f.read()
 	f.close()
@@ -35,7 +33,7 @@ def encrypt(filepath):
 	tmpfile = tmp.name
 	tmp.write(secure)
 	tmp.close()
-	return (e,d,n,tmpfile)
+	return (e,n,tmpfile)
 
 def download(client, filepath, d, n):
 	print 'downloading file: '+filepath
@@ -62,15 +60,34 @@ def listfiles(client, directory):
 	#for item in meta.contents:
 	#	print item.path
 
+def loadconf(conffile):
+	try:
+		conf = open(conffile and conffile or 'rsa.keys')
+		e = long(conf.readline())
+		d = long(conf.readline())
+		n = long(conf.readline())
+		conf.close()
+		return (e,d,n)
+	except IOError:
+		print 'No config file found. Generating keys... (It may take a while)'
+		e,d,n = rsa.keys(1024)
+		f = open('rsa.keys', 'w')
+		f.write(str(e)+'\n')
+		f.write(str(d)+'\n')
+		f.write(str(n)+'\n')
+		f.close()
+		return (e,d,n)
+
 if __name__ == "__main__":
-	client = connect(app_key,app_secret,'')
+	#client = connect(app_key,app_secret,'')
+	e,d,n = loadconf('')
 	level = '/'
 	while True:
-		command = raw_input('upload <file> | download <file> key mod | list | cd | exit:').strip()
+		command = raw_input('command: ').strip()
 		if command.split(' ')[0] == 'upload':
-			upload(client, command.split(' ')[1])
+			upload(client, command.split(' ')[1],e,n)
 		elif command.split(' ')[0] == 'download':
-			download(client,command.split(' ')[1],long(command.split(' ')[2]),long(command.split(' ')[3]))
+			download(client,command.split(' ')[1],d,n)
 		elif command.split(' ')[0] == 'list':
 			listfiles(client,level)
 		elif command.split(' ')[0] == 'cd':
@@ -81,6 +98,14 @@ if __name__ == "__main__":
 			else:
 				level = level+command.split(' ')[1]+'/'
 		elif command.split(' ')[0] == 'exit':
+			print 'Bye!\n\n'
 			break
 		elif command.split(' ')[0] == 'pwd':
 			print level
+		elif command.split(' ')[0] == 'help':
+			print 'upload <file> - Encrypt and upload a file.'
+			print 'download <file> - Download and Decrypt a file'
+			print 'list - List DropBox files'
+			print 'cd [..|<dirname>] - Change Directory'
+			print 'pwd - Print the current dir'
+			print 'exit - Quit program'
