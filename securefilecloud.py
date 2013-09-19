@@ -4,6 +4,7 @@ import rsa
 import shutil
 import sys
 import tempfile
+import time
 from os import urandom
 
 app_key = 'digkwqezrgetnmk'
@@ -22,9 +23,11 @@ def connect(app_key, app_secret,code):
 
 def upload(client, filepath, e, n, mode):
 	print 'upload file '+filepath
+	t=time.time()
 	(e,n,filetmp) = encrypt(filepath, e, n, mode)
 	f = open(filetmp)
 	client.put_file("/"+filepath,f)
+	print str(time.time()-t)+'secs.'
 
 def encrypt(filepath, e, n, mode):
 	f = open(filepath,'r')
@@ -40,11 +43,13 @@ def encrypt(filepath, e, n, mode):
 
 def download(client, filepath, d, n, mode):
 	print 'downloading file: '+filepath
+	t=time.time()
 	out = file('./'+filepath[filepath.rfind('/')+1:],'w')
 	f = client.get_file(filepath).read()
 	out.write(f)
 	out.close()
 	decrypt(out.name,d,n,mode)
+	print str(time.time()-t)+'secs'
 
 def decrypt(filepath, d, n, mode):
 	tmp = tempfile.NamedTemporaryFile(delete=False)
