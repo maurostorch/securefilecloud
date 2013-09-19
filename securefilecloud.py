@@ -1,8 +1,10 @@
+import aes
 import dropbox
 import rsa
 import shutil
 import sys
 import tempfile
+from os import urandom
 
 app_key = 'digkwqezrgetnmk'
 app_secret = 'lyfqfd82znxp99i'
@@ -18,39 +20,41 @@ def connect(app_key, app_secret,code):
 	print 'account: ', client.account_info()
 	return client
 
-def upload(client, filepath, e, n):
+def upload(client, filepath, e, n, mode):
 	print 'upload file '+filepath
-	(e,n,filetmp) = encrypt(filepath, e, n)
+	(e,n,filetmp) = encrypt(filepath, e, n, mode)
 	f = open(filetmp)
 	client.put_file("/"+filepath,f)
 
-def encrypt(filepath, e, n):
+def encrypt(filepath, e, n, mode):
 	f = open(filepath,'r')
 	data = f.read()
 	f.close()
-	secure = rsa.encrypt(data,e,n)
+	if mode == 'RSA': secure = rsa.encrypt(data,e,n)
+	elif mode == 'AES': secure = aes.encryptAES(e,data.encode('hex'),'CTR')
 	tmp = tempfile.NamedTemporaryFile(delete=False)
 	tmpfile = tmp.name
-	tmp.write(secure)
+	tmp.write(secure.decode('hex'))
 	tmp.close()
 	return (e,n,tmpfile)
 
-def download(client, filepath, d, n):
+def download(client, filepath, d, n, mode):
 	print 'downloading file: '+filepath
 	out = file('./'+filepath[filepath.rfind('/')+1:],'w')
 	f = client.get_file(filepath).read()
 	out.write(f)
 	out.close()
-	decrypt(out.name,d,n)
+	decrypt(out.name,d,n,mode)
 
-def decrypt(filepath, d, n):
+def decrypt(filepath, d, n, mode):
 	tmp = tempfile.NamedTemporaryFile(delete=False)
 	tmp.close()
 	shutil.copy(filepath, tmp.name)
 	tmp = open(tmp.name)
 	c = tmp.read()
 	f = open(filepath, 'w')
-	f.write(rsa.decrypt(c,d,n))
+	if mode == 'RSA': f.write(rsa.decrypt(c,d,n))
+	elif mode == 'AES': f.write(aes.decryptAES(d,c[:16],c[16:],'ctr').decode('hex'))
 	f.close()
 	tmp.close()
 
@@ -60,7 +64,7 @@ def listfiles(client, directory):
 	#for item in meta.contents:
 	#	print item.path
 
-def loadconf(conffile):
+def loadconfrsa(conffile):
 	try:
 		conf = open(conffile and conffile or 'rsa.keys')
 		e = long(conf.readline())
@@ -77,17 +81,36 @@ def loadconf(conffile):
 		f.write(str(n)+'\n')
 		f.close()
 		return (e,d,n)
+def loadconfaes(conffile):
+	try:
+		conf = open(conffile and conffile or 'aes.keys')
+		k = conf.readline()
+		conf.close()
+		return (k,k,0) 
+	except IOError:
+		print 'No config file found. Generating keys... (It may take a while)'
+		k = urandom(16)
+		f = open('aes.keys', 'w')
+		f.write(k)
+		f.close()
+		return (k,k,0)
 
 if __name__ == "__main__":
-	#client = connect(app_key,app_secret,'')
-	e,d,n = loadconf('')
+	client = connect(app_key,app_secret,'')
+	mode = ''
+	while str(mode) != "AES" and str(mode) != "RSA":
+		mode = raw_input('Enter an encrypt mode (AES|RSA): ').strip().upper()
+	if mode == 'RSA':
+		e,d,n = loadconfrsa('')
+	elif mode == 'AES':
+		e,d,n = loadconfaes('')
 	level = '/'
 	while True:
 		command = raw_input('command: ').strip()
 		if command.split(' ')[0] == 'upload':
-			upload(client, command.split(' ')[1],e,n)
+			upload(client, command.split(' ')[1],e,n,mode)
 		elif command.split(' ')[0] == 'download':
-			download(client,command.split(' ')[1],d,n)
+			download(client,command.split(' ')[1],d,n,mode)
 		elif command.split(' ')[0] == 'list':
 			listfiles(client,level)
 		elif command.split(' ')[0] == 'cd':
