@@ -6,5 +6,5 @@ The security will be keeped fully in client side. The public data, including tra
 
 Dependencies
 ------------
-gmpy2 - code.google.com/p/gmpy/
-pycrypto - dlitz.net/software/pycrypto/
+* gmpy2 - code.google.com/p/gmpy/
+* pycrypto - dlitz.net/software/pycrypto/
