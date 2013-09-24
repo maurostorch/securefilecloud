@@ -71,7 +71,7 @@ def listfiles(client, directory):
 
 def loadconf(conffile):
 	try:
-		conf = open(conffile and conffile or 'keys')
+		conf = open(conffile and conffile or '.securefilecloud.keys')
 		mode = conf.readline()
 		if mode == 'RSA':
 			e = long(conf.readline())
@@ -89,7 +89,7 @@ def loadconf(conffile):
 		while str(mode) != "AES" and str(mode) != "RSA":
 			mode = raw_input('Enter an encrypt mode (AES|RSA): ').strip().upper()
 		print 'Generating keys... (It may take a while)'
-		f = open('keys', 'w')
+		f = open('.securefilecloud.keys', 'w')
 		f.write(mode)
 		if mode == 'RSA':
 			e,d,n = rsa.keys(1024)
