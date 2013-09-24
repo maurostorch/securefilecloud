@@ -69,46 +69,42 @@ def listfiles(client, directory):
 	#for item in meta.contents:
 	#	print item.path
 
-def loadconfrsa(conffile):
+def loadconf(conffile):
 	try:
-		conf = open(conffile and conffile or 'rsa.keys')
-		e = long(conf.readline())
-		d = long(conf.readline())
-		n = long(conf.readline())
-		conf.close()
-		return (e,d,n)
+		conf = open(conffile and conffile or 'keys')
+		mode = conf.readline()
+		if mode == 'RSA':
+			e = long(conf.readline())
+			d = long(conf.readline())
+			n = long(conf.readline())
+			conf.close()
+			return (mode,e,d,n)
+		else:
+			k = conf.readline()
+			conf.close()
+			return (mode,k,k,0)
 	except IOError:
-		print 'No config file found. Generating keys... (It may take a while)'
-		e,d,n = rsa.keys(1024)
-		f = open('rsa.keys', 'w')
-		f.write(str(e)+'\n')
-		f.write(str(d)+'\n')
-		f.write(str(n)+'\n')
-		f.close()
-		return (e,d,n)
-def loadconfaes(conffile):
-	try:
-		conf = open(conffile and conffile or 'aes.keys')
-		k = conf.readline()
-		conf.close()
-		return (k,k,0) 
-	except IOError:
-		print 'No config file found. Generating keys... (It may take a while)'
-		k = urandom(16)
-		f = open('aes.keys', 'w')
-		f.write(k)
-		f.close()
-		return (k,k,0)
+		print 'No configuration file found.'
+		mode = ''
+		while str(mode) != "AES" and str(mode) != "RSA":
+			mode = raw_input('Enter an encrypt mode (AES|RSA): ').strip().upper()
+		print 'Generating keys... (It may take a while)'
+		f = open('keys', 'w')
+		f.write(mode)
+		if mode == 'RSA':
+			e,d,n = rsa.keys(1024)
+			f.write(str(e)+'\n')
+			f.write(str(d)+'\n')
+			f.write(str(n)+'\n')
+			f.close()
+			return (mode,e,d,n)
+		else:
+			k=urandom(16)
+			f.write(k)
+			f.close()
+			return (mode,k,k,0)
 
-if __name__ == "__main__":
-	client = connect(app_key,app_secret,'')
-	mode = ''
-	while str(mode) != "AES" and str(mode) != "RSA":
-		mode = raw_input('Enter an encrypt mode (AES|RSA): ').strip().upper()
-	if mode == 'RSA':
-		e,d,n = loadconfrsa('')
-	elif mode == 'AES':
-		e,d,n = loadconfaes('')
+def prompt(client, mode,e,d,n):
 	level = '/'
 	while True:
 		command = raw_input('command: ').strip()
@@ -137,3 +133,12 @@ if __name__ == "__main__":
 			print 'cd [..|<dirname>] - Change Directory'
 			print 'pwd - Print the current dir'
 			print 'exit - Quit program'
+		else:
+			print 'command not found.\n'
+			print 'type help for command list'
+
+if __name__ == "__main__":
+	client = connect(app_key,app_secret,'')
+	#client = ''  #for command line test, uncomment this and comment line before this.
+	mode,e,d,n = loadconf('')
+	prompt(client,mode,e,d,n)
