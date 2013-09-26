@@ -44,8 +44,12 @@ def encrypt(filepath, e, n, mode):
 def download(client, filepath, d, n, mode):
 	print 'downloading file: '+filepath
 	t=time.time()
+	try:
+		f = client.get_file(filepath).read()
+	except dropbox.rest.ErrorResponse:
+		print 'Error on request'
+		return
 	out = file('./'+filepath[filepath.rfind('/')+1:],'w')
-	f = client.get_file(filepath).read()
 	out.write(f)
 	out.close()
 	decrypt(out.name,d,n,mode)
@@ -90,7 +94,7 @@ def loadconf(conffile):
 			mode = raw_input('Enter an encrypt mode (AES|RSA): ').strip().upper()
 		print 'Generating keys... (It may take a while)'
 		f = open('.securefilecloud.keys', 'w')
-		f.write(mode)
+		f.write(mode+'\n')
 		if mode == 'RSA':
 			e,d,n = rsa.keys(1024)
 			f.write(str(e)+'\n')
