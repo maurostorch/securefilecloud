@@ -1,11 +1,15 @@
 import aes
+import Ecc
 import dropbox
+import random
 import rsa
 import shutil
 import sys
 import tempfile
 import time
 from os import urandom
+from os import rename
+from os import remove
 
 app_key = 'digkwqezrgetnmk'
 app_secret = 'lyfqfd82znxp99i'
@@ -21,6 +25,15 @@ def connect(app_key, app_secret,code):
 	print 'account: ', client.account_info()
 	return client
 
+def zip(filepath,mode):
+	if mode == 'zip':
+		with zipfile.ZipFile(filepath+'.zip','w') as zipfile:
+			zipfile.write(filepath)
+		
+	elif mode == 'unzip':
+		with zipfile.ZipFile(filepath,'r') as zipfile:
+			zipfile
+
 def upload(client, filepath, e, n, mode):
 	print 'upload file '+filepath
 	t=time.time()
@@ -35,6 +48,9 @@ def encrypt(filepath, e, n, mode):
 	f.close()
 	if mode == 'RSA': secure = rsa.encrypt(data,e,n)
 	elif mode == 'AES': secure = aes.encryptAES(e,data.encode('hex'),'CTR')
+	elif mode == 'ECC':
+		R,secure = e.encrypt(data)
+		secure = str(R)+secure
 	tmp = tempfile.NamedTemporaryFile(delete=False)
 	tmpfile = tmp.name
 	tmp.write(secure.decode('hex'))
@@ -64,6 +80,9 @@ def decrypt(filepath, d, n, mode):
 	f = open(filepath, 'w')
 	if mode == 'RSA': f.write(rsa.decrypt(c,d,n))
 	elif mode == 'AES': f.write(aes.decryptAES(d,c[:16],c[16:],'ctr').decode('hex'))
+	elif mode == 'ECC':
+		R = (c[1:c.index(',')],c[c.index(',')+1:c.index(')')])
+		f.write(d.decrypt(R, c[c.index(')')+1:]))
 	f.close()
 	tmp.close()
 
@@ -83,6 +102,15 @@ def loadconf(conffile):
 			n = long(conf.readline())
 			conf.close()
 			return (mode,e,d,n)
+		elif mode == 'ECC':
+			a = int(conf.readline())
+			b = int(conf.readline())
+			n = long(conf.readline())
+			base = conf.readline().strip()
+			base = (int(base[1:base.index(',')]),int(base[base.index(',')+1:len(base)]))
+			private = int(conf.readline())
+			ecc = Ecc.ECC(a,b,n,base,private)
+			return mode,ecc,0,0
 		else:
 			k = conf.readline()
 			conf.close()
@@ -90,8 +118,8 @@ def loadconf(conffile):
 	except IOError:
 		print 'No configuration file found.'
 		mode = ''
-		while str(mode) != "AES" and str(mode) != "RSA":
-			mode = raw_input('Enter an encrypt mode (AES|RSA): ').strip().upper()
+		while str(mode) != "AES" and str(mode) != "RSA" and str(mode) != 'ECC':
+			mode = raw_input('Enter an encrypt mode (AES|RSA|ECC): ').strip().upper()
 		print 'Generating keys... (It may take a while)'
 		f = open('.securefilecloud.keys', 'w')
 		f.write(mode+'\n')
@@ -102,6 +130,15 @@ def loadconf(conffile):
 			f.write(str(n)+'\n')
 			f.close()
 			return (mode,e,d,n)
+		elif mode == 'ECC':
+			mod = Ecc.prime(160)
+			ecc = Ecc.ECC(2,2,mod,(5,1),random.randint(2,mod))
+			f.write(str(2)+'\n')
+			f.write(str(2)+'\n')
+			f.write(str(mod)+'\n')
+			f.write('(5,1)'+'\n')
+			f.write(str(ecc.private)+'\n')
+			return mode,ecc,0,0
 		else:
 			k=urandom(16)
 			f.write(k)
@@ -142,7 +179,7 @@ def prompt(client, mode,e,d,n):
 			print 'type help for command list'
 
 if __name__ == "__main__":
-	client = connect(app_key,app_secret,'')
-	#client = ''  #for command line test, uncomment this and comment line before this.
+	#client = connect(app_key,app_secret,'')
+	client = ''  #for command line test, uncomment this and comment line before this.
 	mode,e,d,n = loadconf('')
 	prompt(client,mode,e,d,n)
