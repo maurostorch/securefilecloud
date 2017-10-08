@@ -1,11 +1,8 @@
-<<<<<<< HEAD
 import aes
 import Ecc
 import dropbox
 import random
 import rsa
-=======
->>>>>>> c0d4bb5b7328f29dd4e079ea7fe4119984774f84
 import shutil
 import tempfile
 import time
@@ -36,7 +33,7 @@ def zip(filepath,mode):
 	if mode == 'zip':
 		with zipfile.ZipFile(filepath+'.zip','w') as zipfile:
 			zipfile.write(filepath)
-		
+
 	elif mode == 'unzip':
 		with zipfile.ZipFile(filepath,'r') as zipfile:
 			zipfile
@@ -53,18 +50,11 @@ def encrypt(filepath, e, n, mode):
 	f = open(filepath, 'r')
 	data = f.read()
 	f.close()
-<<<<<<< HEAD
 	if mode == 'RSA': secure = rsa.encrypt(data,e,n)
 	elif mode == 'AES': secure = aes.encryptAES(e,data.encode('hex'),'CTR')
 	elif mode == 'ECC':
 		R,secure = e.encrypt(data)
 		secure = str(R)+secure
-=======
-	if mode == 'RSA':
-		secure = rsa.encrypt(data, e, n)
-	elif mode == 'AES':
-		secure = aes.encryptAES(e, data.encode('hex'), 'CTR')
->>>>>>> c0d4bb5b7328f29dd4e079ea7fe4119984774f84
 	tmp = tempfile.NamedTemporaryFile(delete=False)
 	tmpfile = tmp.name
 	tmp.write(secure.decode('hex'))
@@ -92,18 +82,11 @@ def decrypt(filepath, d, n, mode):
 	tmp = open(tmp.name)
 	c = tmp.read()
 	f = open(filepath, 'w')
-<<<<<<< HEAD
 	if mode == 'RSA': f.write(rsa.decrypt(c,d,n))
 	elif mode == 'AES': f.write(aes.decryptAES(d,c[:16],c[16:],'ctr').decode('hex'))
 	elif mode == 'ECC':
 		R = (c[1:c.index(',')],c[c.index(',')+1:c.index(')')])
 		f.write(d.decrypt(R, c[c.index(')')+1:]))
-=======
-	if mode == 'RSA':
-		f.write(rsa.decrypt(c, d, n))
-	elif mode == 'AES':
-		f.write(aes.decryptAES(d, c[:16], c[16:], 'ctr').decode('hex'))
->>>>>>> c0d4bb5b7328f29dd4e079ea7fe4119984774f84
 	f.close()
 	tmp.close()
 
@@ -123,7 +106,6 @@ def loadconf(conffile):
 			d = long(conf.readline())
 			n = long(conf.readline())
 			conf.close()
-<<<<<<< HEAD
 			return (mode,e,d,n)
 		elif mode == 'ECC':
 			a = int(conf.readline())
@@ -134,9 +116,6 @@ def loadconf(conffile):
 			private = int(conf.readline())
 			ecc = Ecc.ECC(a,b,n,base,private)
 			return mode,ecc,0,0
-=======
-			return (mode, e, d, n)
->>>>>>> c0d4bb5b7328f29dd4e079ea7fe4119984774f84
 		else:
 			k = conf.readline()
 			conf.close()
@@ -155,7 +134,6 @@ def loadconf(conffile):
 			f.write(str(d) + '\n')
 			f.write(str(n) + '\n')
 			f.close()
-<<<<<<< HEAD
 			return (mode,e,d,n)
 		elif mode == 'ECC':
 			mod = Ecc.prime(160)
@@ -166,9 +144,6 @@ def loadconf(conffile):
 			f.write('(5,1)'+'\n')
 			f.write(str(ecc.private)+'\n')
 			return mode,ecc,0,0
-=======
-			return (mode, e, d, n)
->>>>>>> c0d4bb5b7328f29dd4e079ea7fe4119984774f84
 		else:
 			k = urandom(16)
 			f.write(k)
@@ -210,14 +185,7 @@ def prompt(client, mode, e, d, n):
 			print 'type help for command list'
 
 if __name__ == "__main__":
-<<<<<<< HEAD
 	#client = connect(app_key,app_secret,'')
 	client = ''  #for command line test, uncomment this and comment line before this.
 	mode,e,d,n = loadconf('')
 	prompt(client,mode,e,d,n)
-=======
-	client = connect(app_key, app_secret, '')
-	#client = ''  #for command line test, uncomment this and comment line before this.
-	mode, e, d, n = loadconf('')
-	prompt(client, mode, e, d, n)
->>>>>>> c0d4bb5b7328f29dd4e079ea7fe4119984774f84
